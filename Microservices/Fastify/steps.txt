@@ -1,0 +1,7 @@
+1- npm -global install fastify-cli
+2- fastify generate productMicroservice
+3- npm install axios -save
+4- Routes/example/index.js
+5- cd productMicroservice
+6- npm install 
+5- npm run start      http://localhost:3000/example/products

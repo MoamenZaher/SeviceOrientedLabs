@@ -1,0 +1,153 @@
+1- Install NestJS CLI Globally : npm install -g @nestjs/cli
+2- Create New Microservice :nest new user-microsercie
+3- Change Directorty : cd user-microsercie
+4- Install Dependencies : npm install --save @nestjs/mongoose mongoose dotenv
+6- Add variables for Mongo&Port in .env
+7- In the 'app.module.ts' add :
+import { MongooseModule } from '@nestjs/mongoose';
+import * as dotenv from 'dotenv'; // Import dotenv
+dotenv.config();
+@Module({
+  imports: [
+    MongooseModule.forRoot(process.env.MONGODB_URL),
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+8- In the 'main.ts' add :
+  const port = process.env.PORT || 3000; // You can add a PORT variable in your .env file
+  await app.listen(port);
+9- Create Crud Module: nest generate module user
+10- Create Crud Controller: nest generate controller user
+11- Create Crud Service: nest generate service user
+12- Create User Model in 'user.model.ts' :
+// src/items/user.model.ts
+import { Schema,Document,model } from 'mongoose';
+
+export interface User extends Document {
+  readonly first_name: string;
+  readonly last_name: string;
+  readonly user_name: string;
+  readonly email?: string;
+  readonly password: string;
+  readonly createdAt?: Date;
+}
+
+export const UserSchema = new Schema({
+  first_name: {
+    type: String,
+    required: true,
+  },
+  last_name: {
+    type: String,
+    required: true,
+  },
+  user_name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+export const UserModel = model<User>('UserSchema', UserSchema);
+
+13- Update The User.service.ts :
+import { Injectable,Inject } from '@nestjs/common';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from './user.model';
+
+@Injectable()
+export class UserService {
+    constructor(@Inject('UserModel') private readonly userModel: Model<User>) {}
+
+  async create(user: User): Promise<User> {
+    const newUser = new this.userModel(user);
+    return await newUser.save();
+  }
+
+  async findAll(): Promise<User[]> {
+    return await this.userModel.find().exec();
+  }
+
+  async findOne(id: string): Promise<User> {
+    return await this.userModel.findById(id).exec();
+  }
+
+  async update(id: string, user: User): Promise<User> {
+    return await this.userModel.findByIdAndUpdate(id, user, { new: true }).exec();
+  }
+
+  async delete(id: string): Promise<any> {
+    return await this.userModel.deleteOne({ _id: id }).exec();
+  }
+}
+
+14- Update User Controller:
+import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { UserService } from './user.service';
+import { User } from './user.model';
+
+@Controller('user')
+export class UserController {
+    constructor(private readonly userService: UserService) { }
+    @Post()
+    async create(@Body() createUserDto: User): Promise<User> {
+        return this.userService.create(createUserDto);
+    }
+
+    @Get()
+    async findAll(): Promise<User[]> {
+        return this.userService.findAll();
+    }
+
+    @Get(':id')
+    async findOne(@Param('id') id: string): Promise<User> {
+        return this.userService.findOne(id);
+    }
+
+    @Put(':id')
+    async update(@Param('id') id: string, @Body() updateUserDto: User): Promise<User> {
+        return this.userService.update(id, updateUserDto);
+    }
+
+    @Delete(':id')
+    async remove(@Param('id') id: string): Promise<any> {
+        return this.userService.delete(id);
+    }
+
+}
+
+15- update user.module.ts :
+import { Module } from '@nestjs/common';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
+import { MongooseModule } from '@nestjs/mongoose';
+import { UserSchema,UserModel } from './user.model'; // Import the schema
+
+
+
+@Module({
+  imports: [
+    MongooseModule.forFeature([{ name: 'User', schema: UserSchema }]), // Provide ItemModel
+  ],
+  controllers: [UserController],
+  providers: [UserService]
+})
+export class UserModule {}
+
+
+
+
+
+
